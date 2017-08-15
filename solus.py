@@ -147,8 +147,6 @@ class LSBDecoder(LSBCodec):
             for c in range(CHAN_CNT):
                 if not shifts:
                     break
-                # x = int(px[c] & m1)
-                # x <<= (pos * lsb_cnt)
                 value |= int(px[c] & m1) << (pos * lsb_cnt)
                 pos += 1
                 shifts -= 1
