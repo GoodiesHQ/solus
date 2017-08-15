@@ -18,12 +18,37 @@ LEN_SIZE    = 4     # number of bytes that store the length of data
 CHAN_CNT    = 3     # Number of channels (R,G,B)
 PNG_COMP    = 4     # Default PNG compression value
 
-class UnexpectedXOR(Exception): pass
-class InvalidImage(Exception): pass
-class TooMuchData(Exception): pass
-class InvalidLSB(Exception): pass
-class InvalidXOR(Exception): pass
-class MissingXOR(Exception): pass
+# Exceptions
+
+class UnexpectedXOR(Exception):
+    """An XOR key was provided, but none was expected"""
+    pass
+
+
+class InvalidImage(Exception):
+    """The image provided is either not a valid image (encoding) or was not encoded using this utility (decoding)."""
+    pass
+
+
+class TooMuchData(Exception):
+    """The image is not able to store all of the data."""
+    pass
+
+
+class InvalidLSB(Exception):
+    """The provided LSB value is invalid"""
+    pass
+
+
+class InvalidXOR(Exception):
+    """The XOR key provided is invalid"""
+    pass
+
+
+class MissingXOR(Exception):
+    """An XOR key was expected, but none was provided"""
+    pass
+
 
 class LSBCodec(object):
     """
