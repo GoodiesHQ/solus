@@ -9,6 +9,7 @@ import itertools
 import numpy as np
 import struct
 import sys
+import types
 
 __author__ = "GoodiesHQ"
 
@@ -154,7 +155,7 @@ class LSBDecoder(LSBCodec):
         return value
 
     def decode(self, xor_key=None):
-        if not isinstance(xor_key, (bytes, type(None))):
+        if not isinstance(xor_key, (bytes, types.NoneType)):
             raise TypeError("Only bytes can be used as xor keys.")
         piter = self.iter_pixels()
         m0, m1 = self.gen0mask(CHAN_CNT), self.gen1mask(CHAN_CNT)
