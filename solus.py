@@ -95,7 +95,7 @@ class LSBCodec(object):
         cv2.imwrite(filename, self.img, *args)
 
     def available(self, lsb_cnt):
-        return CHAN_CNT * (self.img.size - PROLOG_SIZE) * lsb_cnt // CHAN_SIZE - LEN_SIZE
+        return CHAN_CNT * (self.img.size - PROLOG_SIZE) * lsb_cnt // CHAN_SIZE - LEN_SIZE - 1
 
     @staticmethod
     def genmask(size):
@@ -132,9 +132,11 @@ class LSBDecoder(LSBCodec):
     def __init__(self, img):
         super(LSBDecoder, self).__init__(img)
 
-    def _decode_data(self, shifts, lsb_cnt, piter):
+    def _decode_data(self, byte_cnt, lsb_cnt, piter):
         value = 0
         pos = 0
+        shifts, rem = divmod(byte_cnt, lsb_cnt)
+        shifts += 1 if rem else 0
         m0, m1 = self.gen0mask(lsb_cnt), self.gen1mask(lsb_cnt)
         while shifts:
             h, w, px = next(piter)
@@ -149,8 +151,8 @@ class LSBDecoder(LSBCodec):
     def decode(self, xor_key=None):
         if not isinstance(xor_key, (bytes, type(None))):
             raise TypeError("Only bytes can be used as xor keys.")
-        piter = self.iter_pixels()
         m0, m1 = self.gen0mask(CHAN_CNT), self.gen1mask(CHAN_CNT)
+        piter = self.iter_pixels()
         prolog = self._decode_data(PROLOG_SIZE * CHAN_CNT, 1, piter)
         xor, lsb_cnt = prolog & m0, prolog & m1
         try:
@@ -161,9 +163,9 @@ class LSBDecoder(LSBCodec):
             raise ValueError("The image provided is invalid.")
         if xor == self.XOR_Y and xor_key is None:
             raise MissingXOR
-        size = self._decode_data(LEN_SIZE * CHAN_SIZE // lsb_cnt, lsb_cnt, piter)
+        size = self._decode_data(LEN_SIZE * CHAN_SIZE, lsb_cnt, piter)
         print("Decoding {} bytes.".format(size))
-        data = self._decode_data(size * CHAN_SIZE // lsb_cnt, lsb_cnt, piter)
+        data = self._decode_data(size * CHAN_SIZE, lsb_cnt, piter)
         data = self.int_to_bytes(data, size)
         if xor == self.XOR_Y:
             data = self.xor(data, xor_key)
@@ -177,9 +179,10 @@ class LSBEncoder(LSBCodec):
     def __init__(self, filename):
         super(LSBEncoder, self).__init__(filename)
 
-    def _encode_data(self, value, shifts, lsb_cnt, piter):
+    def _encode_data(self, value, byte_cnt, lsb_cnt, piter):
+        shifts, rem = divmod(byte_cnt, lsb_cnt)
+        shifts += 1 if rem else 0
         m0, m1 = self.gen0mask(lsb_cnt), self.gen1mask(lsb_cnt)
-        print("Encoding with {} shifts...".format(shifts))
         while shifts:
             h, w, px = next(piter)
             for c in range(CHAN_CNT):
@@ -211,8 +214,8 @@ class LSBEncoder(LSBCodec):
         prolog = (self.XOR_N if xor_key is None else self.XOR_Y) | lsb_cnt
 
         self._encode_data(prolog, PROLOG_SIZE * CHAN_CNT, 1, piter)
-        self._encode_data(size, LEN_SIZE * CHAN_SIZE // lsb_cnt, lsb_cnt, piter)
-        self._encode_data(data, size * CHAN_SIZE // lsb_cnt, lsb_cnt, piter)
+        self._encode_data(size, LEN_SIZE * CHAN_SIZE, lsb_cnt, piter)
+        self._encode_data(data, size * CHAN_SIZE, lsb_cnt, piter)
 
     def encode_string(self, string, xor_key=None):
         return self.encode(string.encode(), xor_key)
@@ -294,6 +297,7 @@ def main():
         "e": encode,
         "d": decode,
         "s": show,
+        "h": histogram,
     }.get(args.operation)()
 
 if __name__ == "__main__":
