@@ -95,7 +95,7 @@ class LSBCodec(object):
         cv2.imwrite(filename, self.img, *args)
 
     def available(self, lsb_cnt):
-        return ((self.img.size - PROLOG_SIZE) // (CHAN_SIZE // lsb_cnt)) - LEN_SIZE - 1
+        return CHAN_CNT * (self.img.size - PROLOG_SIZE) * lsb_cnt // CHAN_SIZE - LEN_SIZE
 
     @staticmethod
     def genmask(size):
@@ -147,7 +147,7 @@ class LSBDecoder(LSBCodec):
         return value
 
     def decode(self, xor_key=None):
-        if not isinstance(xor_key, (bytes, types.NoneType)):
+        if not isinstance(xor_key, (bytes, type(None))):
             raise TypeError("Only bytes can be used as xor keys.")
         piter = self.iter_pixels()
         m0, m1 = self.gen0mask(CHAN_CNT), self.gen1mask(CHAN_CNT)
@@ -239,6 +239,7 @@ def main():
     enc = sp.add_parser("e", help="Encodes data into an image.")
     dec = sp.add_parser("d", help="Decodes data from an image.")
     shw = sp.add_parser("s", help="Show the current image")
+    hst = sp.add_parser("h", help="Create a histogram from an image using matplotlib.")
 
     enc.add_argument("--bits", type=lsb_check, default=1, help="Number of least significant bits used per px.")
     enc.add_argument("--xor", type=to_bytes, default=None, help="The XOR key used to encrypt data.")
@@ -255,6 +256,9 @@ def main():
     dec.add_argument("--out", type=str, required=True, help="Output file to store the decoded data.")
 
     shw.add_argument("--img", type=str, required=True, help="File to display the pixel matrix.")
+
+    hst.add_argument("--img", type=str, required=True, help="File from which to create a histogram.")
+    hst.add_argument("--out", type=str, required=True, help="Output file to store the histogram.")
 
     args = ap.parse_args()
 
@@ -279,7 +283,12 @@ def main():
             fout.write(data)
 
     def show():
-        print(cv2.imread(args.img))
+        enc = LSBEncoder(args.img)
+        for i in range(1, CHAN_SIZE):
+            print("LSB-{}: {} bytes".format(i, enc.available(i)))
+
+    def histogram():
+        from matplotlib import pyplot as plt
 
     {
         "e": encode,
