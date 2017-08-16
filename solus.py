@@ -135,8 +135,7 @@ class LSBDecoder(LSBCodec):
     def _decode_data(self, byte_cnt, lsb_cnt, piter):
         value = 0
         pos = 0
-        shifts, rem = divmod(byte_cnt, lsb_cnt)
-        shifts += 1 if rem else 0
+        shifts = -(-byte_cnt // lsb_cnt)
         m0, m1 = self.gen0mask(lsb_cnt), self.gen1mask(lsb_cnt)
         while shifts:
             h, w, px = next(piter)
@@ -180,8 +179,7 @@ class LSBEncoder(LSBCodec):
         super(LSBEncoder, self).__init__(filename)
 
     def _encode_data(self, value, byte_cnt, lsb_cnt, piter):
-        shifts, rem = divmod(byte_cnt, lsb_cnt)
-        shifts += 1 if rem else 0
+        shifts = -(-byte_cnt // lsb_cnt)
         m0, m1 = self.gen0mask(lsb_cnt), self.gen1mask(lsb_cnt)
         while shifts:
             h, w, px = next(piter)
@@ -292,6 +290,16 @@ def main():
 
     def histogram():
         from matplotlib import pyplot as plt
+        colors = "bgr"
+        img = cv2.imread(args.img)
+        if img is None:
+            raise InvalidImage
+        for i, c in enumerate(colors):
+            hist = cv2.calcHist([img], [i], None, [256], [0, 256])
+            plt.plot(hist, color=c)
+            plt.xlim([0,256])
+            plt.savefig(args.out)
+
 
     {
         "e": encode,
