@@ -55,10 +55,10 @@ class LSBCodec(object):
     XOR_N = 0b000000    # an XOR key is not expected
 
     def __init__(self, filename):
-        self._img = cv2.imread(filename)
+        self._img = cv2.imread(filename, cv2.IMREAD_UNCHANGED)
         if self._img is None:
             raise InvalidImage
-        self._h, self._w, _ = self._img.shape
+        self._h, self._w, self._chans = self._img.shape
 
     def iter_pixels(self):
         """A generator that iterates through the pixels of the provided image."""
@@ -95,7 +95,11 @@ class LSBCodec(object):
         cv2.imwrite(filename, self.img, *args)
 
     def available(self, lsb_cnt):
-        return CHAN_CNT * (self.img.size - PROLOG_SIZE) * lsb_cnt // CHAN_SIZE - LEN_SIZE - 1
+        available_pixels = self._h * self._w - PROLOG_SIZE
+        available_channels = CHAN_CNT * available_pixels
+        available_bits = available_channels * lsb_cnt
+        available_bytes = available_bits // CHAN_SIZE - LEN_SIZE - 1
+        return available_bytes
 
     @staticmethod
     def genmask(size):
